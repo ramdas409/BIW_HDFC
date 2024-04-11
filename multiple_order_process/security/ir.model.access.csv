@@ -15,4 +15,3 @@ access.handoff.wizard,access_handoff_wizard,multiple_order_process.model_handoff
 access.picklist.wizard,access_picklist_wizard,multiple_order_process.model_picklist_wizard,,1,1,1,1
 access.courier.company.code,access_courier_company_code,multiple_order_process.model_courier_company_code,,1,1,1,1
 access.compress.product.quantity,access_compress_product_quantity,multiple_order_process.model_compress_product_quantity,,1,1,1,1
-access_report_mail_config,access_report_mail_config,multiple_order_process.model_report_mail_config,base.group_user,1,1,1,1

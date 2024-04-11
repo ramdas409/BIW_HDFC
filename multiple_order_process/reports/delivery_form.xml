@@ -1,31 +1,12 @@
 <odoo>
     <template id="report_delivery_form">
         <t t-call="web.html_container">
-            <t t-set="client_list" t-value="[]"/>
-            <t t-set="done_list" t-value="{}"/>
-            <t t-set="initial" t-value="0"/>
-            <t t-foreach="docs" t-as="record">
-                <t t-if="record.client_order not in client_list">
-                    <t t-set="client_list" t-value="client_list + [record.client_order]"/>
-
-                </t>
-            </t>
-            <t t-foreach="docs.sorted(lambda rec: rec.unique_ref.global_item_code.name)" t-as="o">
-
-
+            <t t-foreach="docs" t-as="o">
                 <t t-if="o.picking_type_code == 'outgoing'">
                     <div class="page" style="page-break-before: always;">
                         <br></br>
-                        <t t-if="o.client_order not in done_list">
-                            <t t-set="initial" t-value="initial+1"/>
-
-                            <t t-esc="done_list.update({o.client_order:initial})"/>
-                        </t>
-
                         <table style="width:100mm; border: 1pt solid black; border-collapse: collapse;">
                             <tr>
-                                <td>
-                                </td>
                                 <td colspan="5"
                                     style="width:100mm; padding-top: 2mm; padding-left: 5mm; text-align:center;">
                                     <img t-if="o.company_id.logo"
@@ -53,8 +34,8 @@
                             <tr>
                                 <td colspan="5" style="width:100mm; border: 1pt solid black; text-align:center;">
                                     <span style="font-size:12px;">
-                                        <t t-esc="o.courier_company_id.name"/>:
-                                        <t t-esc="o.courier_company_id.courier_account_number"/>
+                                        <t t-esc="o.courier_company.courier_company.name"/>:
+                                        <t t-esc="o.courier_company.courier_company.courier_account_number"/>
                                     </span>
                                 </td>
                             </tr>
@@ -66,12 +47,11 @@
                                     <t t-set="barcode_size" t-value="'width:50mm;height:13mm'"/>
                                     <div t-out="o.awb_number.awb_number"
                                          t-options="{'widget': 'barcode', 'symbology': 'auto', 'img_style': barcode_size}"/>
-                                    <span style="font-size:11px; text-align:center;"
-                                          t-out="o.awb_number.awb_number"/>
+                                    <span style="font-size:11px; text-align:center;" t-out="o.awb_number.awb_number"/>
                                 </td>
                                 <td style="width:20mm; border: 1pt solid black;">
                                     <span style="font-size:12px; text-align:center;">
-                                        <t t-esc="o.airport"/>
+                                        <t t-esc="o.courier_company.airport"/>
                                     </span>
                                 </td>
                             </tr>
@@ -81,12 +61,12 @@
                                 </td>
                                 <td style="width:20mm; border: 1pt solid black">
                                     <span style="font-size:12px;">
-                                        <t t-esc="o.hub"/>
+                                        <t t-esc="o.courier_company.hub"/>
                                     </span>
                                 </td>
                             </tr>
                             <tr style="text-align:left;">
-                                <td colspan="3" style="width:40mm; border: 1pt solid black; padding: 1mm;height:100px;">
+                                <td colspan="3" style="width:60mm; border: 1pt solid black; padding: 2mm;">
                                     <div style="font-size:11px;">
                                         To,
                                         <br/>
@@ -109,19 +89,19 @@
                                         <br/>
 
                                         <t t-if="not o.partner_id.name[25:50]">
-
+                                            <br/>
                                         </t>
                                         <t t-if="not o.partner_id.street[25:45]">
-
+                                            <br/>
                                         </t>
                                         <t t-if="not o.partner_id.street[45:65]">
-
+                                            <br/>
                                         </t>
                                         <t t-if="not o.partner_id.street2[25:45]">
-
+                                            <br/>
                                         </t>
                                         <t t-if="not o.partner_id.street2[45:65]">
-
+                                            <br/>
                                         </t>
 
                                         <strong>Phone:
@@ -134,21 +114,22 @@
                                     Order No:
                                     <t t-esc="o.unique_ref.ref_no"/>
                                     <br/>
+                                    <br/>
                                     BIW Ref No:
                                     <t t-esc="o.unique_ref.unique_ref"/>
+                                    <br/>
                                     <br/>
                                     Handoff ID:
                                     <t t-esc="o.hand_off_id"/>
                                     <br/>
-
+                                    <br/>
                                     Client Ref:
                                     <t t-esc="o.unique_ref.item_code"/>
                                 </td>
                             </tr>
                             <tr>
                                 <td colspan="5" style="width:100mm; border: 1pt solid black; text-align:center;">
-                                    <span style="font-size:12px;">This consignment from BI Wordwide is a gift and
-                                        does
+                                    <span style="font-size:12px;">This consignment from BI Wordwide is a gift and does
                                         not
                                         carry commercial value.
                                         <t t-esc="o.delivery_form_log()"/>
@@ -188,7 +169,6 @@
                                     </td>
                                 </tr>
                             </t>
-
                             <tr style="font-size:12px;">
                                 <td colspan="5" style="width:60mm; padding: 2mm;">
                                     GST IN:
@@ -214,7 +194,6 @@
                                     Door No.8 &amp; 8A, DRR Avenue, Audco Nagar,
                                     <br/>
                                     Kattupakkam, Chennai 600056.
-                                    <span style="float:right"><t t-esc="done_list.get(o.client_order)"/></span>
                                 </td>
                             </tr>
                         </table>
@@ -224,6 +203,7 @@
         </t>
     </template>
 
+
     <record id="action_report_delivery_form" model="ir.actions.report">
         <field name="name">Delivery Form</field>
         <field name="model">stock.picking</field>
@@ -232,16 +212,6 @@
         <field name="report_file">multiple_order_process.report_delivery_form</field>
         <field name="binding_model_id" ref="stock.model_stock_picking"/>
         <field name="binding_type">report</field>
-    </record>
-
-
-    <record id="action_delivery_form_for_mutliple_order_process" model="ir.actions.server">
-        <field name="name">Delivery form -- multi order</field>
-        <field name="type">ir.actions.server</field>
-        <field name="model_id" ref="stock.model_stock_picking"/>
-        <field name="binding_model_id" ref="stock.model_stock_picking"/>
-        <field name="state">code</field>
-        <field name="code">records.generate_delivery_form_multi_order_process()</field>
     </record>
 
 </odoo>

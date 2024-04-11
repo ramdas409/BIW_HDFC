@@ -1,2 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-rollback_orders.access_github_commit,access_github_commit,rollback_orders.model_github_commit,base.group_user,1,1,1,1

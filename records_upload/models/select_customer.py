@@ -23,6 +23,7 @@ class SelectCustomerWizard(models.TransientModel):
             raise ValidationError('Please Select Orders containing same "Customer"')
 
     def action_submit(self):
+        print("printed and submitted")
         return self.env['temp.rec'].process_to_master(self)
 
 

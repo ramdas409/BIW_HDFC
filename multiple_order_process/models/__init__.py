@@ -7,4 +7,3 @@ from . import re_dispatch
 from . import validation_report
 from . import sale_order
 from . import stock_picking
-from . import  SendMailConfig

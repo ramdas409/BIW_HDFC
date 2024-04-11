@@ -8,10 +8,9 @@ class StockPickingEnhanced(models.Model):
     _inherit = 'stock.picking'
 
     # To Remove
-    # courier_company = fields.Many2one('courier.company.code', string='Courier Company', readonly=0, ondelete='restrict')
+    courier_company = fields.Many2one('courier.company.code', string='Courier Company', readonly=0, ondelete='restrict')
     # To Remove
-
-    courier_company_id = fields.Many2one('res.partner', string='Courier Company', readonly=0, ondelete='restrict')
+    courier_company_char = fields.Char(string='Courier Company', readonly=0)
     awb_number = fields.Many2one('air.way.bill', string='AWB Number', readonly=0, ondelete='restrict')
     hand_off_id = fields.Char(string='Hand-off ID', readonly=1)
     invoiced_id = fields.Many2one('account.move', string='Invoiced ID', readonly=1)
@@ -28,23 +27,12 @@ class StockPickingEnhanced(models.Model):
         ('re_dispatched', 'RE_DISPATCHED')], tracking=True, readonly=1)
     zip = fields.Char(related='partner_id.zip', store=True)
     unique_ref = fields.Many2one('pemt.rec', string='Unique Reference', related='partner_id.unique_ref', readonly=1, store=True)
-    return_date = fields.Date(related="unique_ref.return_date",string="Return Date",readonly=1)
-    cancel_date = fields.Date(related="unique_ref.cancel_date",string="Cancel Date",readonly=1)
-
-    # hub = fields.Char(string='HUB', related='courier_company.hub', readonly=1, store=True)
-    # airport = fields.Char(string='Airport', related='courier_company.airport', readonly=1, store=True)
-
-    # Altered
-    hub = fields.Char(string='HUB', readonly=1, store=True, tracking=True)
-    airport = fields.Char(string='Airport', readonly=1, store=True, tracking=True)
-    product_code=fields.Char(string='unique_ref.global_item_code')
-    # Altered
-
+    hub = fields.Char(string='HUB', related='courier_company.hub', readonly=1, store=True)
+    airport = fields.Char(string='Airport', related='courier_company.airport', readonly=1, store=True)
     invoice_date = fields.Date(string='Invoice Date', related='invoiced_id.invoice_date', readonly=1, store=True)
     credit_note_number = fields.Many2one('account.move', string='Credit Note Number', readonly=1)
     credit_note_date = fields.Date(string='Credit Note Date', related='credit_note_number.invoice_date', readonly=1, store=True)
     return_order = fields.Many2one('stock.picking', string='Return Order', readonly=1)
-    client_order=fields.Char(string="Reference No",related='unique_ref.ref_no',store=True)
 
     def name_get(self):
         res = []
@@ -110,7 +98,7 @@ class StockPickingEnhanced(models.Model):
                     rec.order_status = 'cancelled'
 
     def confirm_hand_off(self):
-        courier_priority = self.env['courier.priority'].search([], order='priority_no asc')
+        courier_priority = self.env['courier.priority'].search([])
         tot_couriers = {}
         for couriers in courier_priority:
             tot_couriers[couriers.priority_no] = couriers.courier_company
@@ -118,101 +106,67 @@ class StockPickingEnhanced(models.Model):
         if len(list(tot_couriers)) == 0:
             raise UserError('There are no courier companies available')
 
-        # order_no=None
-        awb = None
-        client = None
-        client_orders = []
-        parent_pincode_ids = None
-        pincode_id = None
-        for rec in self.sorted(lambda x: x.client_order):
+        for rec in self:
             if rec.picking_type_code == 'outgoing':
                 if rec.state == 'assigned' and rec.order_status == 'ready':
                     if rec.zip != '':
-                        if rec.client_order != client and rec.client_order not in client_orders:
-                            for courier in range(len(sorted)):
-                                if rec.courier_company_id.id == False and rec.awb_number.id == False:
-                                    parent_pincode_ids = tot_couriers[sorted[courier]].courier_pincode_ids.search(
-                                        [('pin_code', '=', rec.zip)])
-                                    response = tot_couriers[sorted[courier]].courier_pincode_ids.search(
-                                        [('courier_company', '=', tot_couriers[sorted[courier]].id),
-                                         ('pin_code', '=', rec.zip)])
-                                    pincode_id = response
-                                    awb = pincode_id.courier_company.serviced_awb.search(
-                                        [('delivery_order_number_many', '=', False),
-                                         ('serviced_awb_link', '=', pincode_id.courier_company.id)],
-                                        order='awb_number asc')
-                                    client_orders.append(rec.client_order)
-                                    client = rec.client_order
-                                    if (response):
-                                        break
-                        if parent_pincode_ids:
-                            if pincode_id:
-                                if len(awb) != 0:
-                                    rec.courier_company_id = pincode_id.courier_company.id
-                                    rec.awb_number = awb[0].id
-                                    rec.hub = pincode_id.hub
-                                    rec.airport = pincode_id.airport
-                                    awb[0].delivery_order_number_many = [(4, rec.id)]
-                                    rec.order_status = 'hand_off'
+                        for courier in range(len(sorted)):
+                            if rec.courier_company.id == False and rec.awb_number.id == False:
+                                parent_pincode_ids = tot_couriers[sorted[courier]].courier_pincode_ids.search([('pin_code', '=', rec.zip)])
+                                pincode_id = tot_couriers[sorted[courier]].courier_pincode_ids.search([('courier_company', '=', tot_couriers[sorted[courier]].id), ('pin_code', '=', rec.zip)])
+                                awb_remaining = pincode_id.courier_company.serviced_awb.search([('delivery_order_number', '=', False), ('serviced_awb_link', '=', pincode_id.courier_company.id)])
+                                if parent_pincode_ids:
+                                    if pincode_id:
+                                        if len(awb_remaining) != 0:
+                                            rec.courier_company = pincode_id.id
+                                            rec.awb_number = awb_remaining[0].id
+                                            awb_remaining[0].delivery_order_number = rec.id
+                                            rec.order_status = 'hand_off'
+                                        else:
+                                            raise UserError("Shortage of AWB No(s) to assign")
                                 else:
-                                    raise UserError("Shortage of AWB No(s) to assign")
-                        else:
-                            rec.order_status = 'not_serviceable'
+                                    rec.order_status = 'not_serviceable'
                     else:
                         rec.order_status = 'not_serviceable'
                 else:
                     raise UserError('Order(s) is/are not in Ready state to Hand-off')
             else:
                 raise UserError('Please Select Delivery Orders Only')
-        single_awb_list=[]
-        multiple_awb_list=[]
-        for rec in self:
-            if self.search_count([('awb_number','=',rec.awb_number.id)])>1:
-                multiple_awb_list.append(rec)
-            else:
-                single_awb_list.append(rec)
 
-        single_cour_company_list = []
-        multiple_cour_company_list = []
-        for recs in single_awb_list:
-            if recs.courier_company_id:
-                single_cour_company_list.append(recs.courier_company_id)
-        for recs in multiple_awb_list:
-            if recs.courier_company_id:
-                multiple_cour_company_list.append(recs.courier_company_id)
+        # not_awb_list = []
+        # for not_awb in self:
+        #     if not_awb.order_status == 'ready':
+        #         not_awb_list.append(not_awb)
+        # if len(not_awb_list) > 0:
+        #     raise UserError("Shortage of " + str(len(not_awb_list)) + " AWB No(s) to assign")
 
-        map_hand_off_id_multi = {}
-        for cour in set(multiple_cour_company_list):
-            map_hand_off_id_multi[cour] = self.env['ir.sequence'].next_by_code('hand_off_ids')
+        cour_company_list = []
+        for recs in self:
+            if recs.courier_company:
+                cour_company_list.append(recs.courier_company.courier_company)
+        print(cour_company_list)
 
-        for lines in multiple_awb_list:
-            for ids in map_hand_off_id_multi:
-                if lines.courier_company_id == ids:
-                    lines.hand_off_id = map_hand_off_id_multi[ids]
-                    lines.hand_off_date_time = datetime.datetime.now()
+        map_hand_off_id = {}
+        for cour in set(cour_company_list):
+            map_hand_off_id[cour] = self.env['ir.sequence'].next_by_code('hand_off_ids')
+        print(map_hand_off_id)
 
-        map_hand_off_id_single = {}
-        for cour in set(single_cour_company_list):
-            map_hand_off_id_single[cour] = self.env['ir.sequence'].next_by_code('hand_off_ids')
-
-        for lines in single_awb_list:
-            for ids in map_hand_off_id_single:
-                if lines.courier_company_id == ids:
-                    lines.hand_off_id = map_hand_off_id_single[ids]
+        for lines in self:
+            for ids in map_hand_off_id:
+                if lines.courier_company.courier_company == ids:
+                    lines.hand_off_id = map_hand_off_id[ids]
                     lines.hand_off_date_time = datetime.datetime.now()
 
     def button_validate(self):
-        validate_lis = []
         for recs in self:
             if recs.picking_type_code == 'outgoing' and 'Return of ' not in recs.origin:
                 if recs.order_status == 'hand_off':
-                    validate_lis.append(recs.id)
+                    res = super(StockPickingEnhanced, self).button_validate()
                 else:
                     raise UserError('Order(s) is/are not yet handed to Courier Company')
+                return res
             else:
                 return super(StockPickingEnhanced, self).button_validate()
-        validate_ids = self.env['stock.picking'].search([('id', 'in', validate_lis)])
-        return super(StockPickingEnhanced, validate_ids).button_validate()
 
     def delivery_form_log(self):
         a = self.env.user.name
@@ -272,20 +226,6 @@ class StockPickingEnhanced(models.Model):
         for printer_name in printers:
             if printer_name:
                 conn.printFile(printer_name, 'Greetings.pdf', '', {})
-
-    @api.onchange('invoiced_id')
-    def update_data_child_invoice(self):
-        for rec in self:
-            if rec.return_order:
-                data = {'invoiced_id': rec.invoiced_id.id, 'invoice_date': rec.invoice_date}
-                upda = self.env['stock.picking'].browse(rec.return_order).write(data)
-
-    @api.onchange('credit_note_number')
-    def update_data_child_credit_note(self):
-        for rec in self:
-            if rec.return_order:
-                data = {'credit_note_number': rec.credit_note_number.id, 'credit_note_date': rec.credit_note_date}
-                self.env['stock.picking'].browse(rec.return_order).write(data)
 
     # Every redispatch must have unique records in res.partners
     # send unique reference again to res.partners to use in stock.picking

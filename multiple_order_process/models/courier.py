@@ -46,13 +46,13 @@ class AirWayBill(models.Model):
     awb_number = fields.Char(string="AWB Number")
     delivery_order_number = fields.Many2one('stock.picking', string="Delivery Order Number")
     serviced_awb_link = fields.Many2one('res.partner', string='Courier Company', ondelete="restrict")
-    delivery_order_number_many = fields.Many2many('stock.picking', string="Delivery Order Number")
 
 class CourierCompanyCode(models.Model):
     _name = 'courier.company.code'
+    # _rec_name = 'pin_code'
 
-    courier_company = fields.Many2one('res.partner', ondelete="restrict", string='Courier Partner', required=True)
-    pin_code = fields.Char(string='PIN CODE', required=True)
+    courier_company = fields.Many2one('res.partner', ondelete="restrict", string='Courier Partner')
+    pin_code = fields.Char(string='PIN CODE')
     location = fields.Char(string='LOCATION')
     state = fields.Char(string='STATE')
     hub = fields.Char(string='HUB')
@@ -62,7 +62,10 @@ class CourierCompanyCode(models.Model):
     def name_get(self):
         result = []
         for record in self:
-            result.append((record.id, "{}".format(record.courier_company.name + ' - ' + record.pin_code)))
+            if self.env.context.get('custom_pin_name', False):
+                result.append((record.id, "{}".format(record.pin_code)))
+            else:
+                result.append((record.id, "{}".format(record.courier_company.name)))
         return result
 
 
