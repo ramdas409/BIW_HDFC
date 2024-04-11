@@ -3,11 +3,6 @@ from odoo.exceptions import ValidationError, UserError
 import datetime
 import re
 
-
-class MultipleInvoice(models.Model):
-    _inherit = 'stock.picking'
-
-
 class TreeViewName(models.Model):
     _inherit = 'account.move'
 
@@ -53,7 +48,10 @@ class GenerateMultipleInvoice(models.TransientModel):
         partner_id_list = []
         for picking in selected_records:
             if picking.partner_id.parent_id:
-                partner_id_list.append(picking.partner_id.parent_id.id)
+                if picking.partner_id.parent_id.is_company == True:
+                    partner_id_list.append(picking.partner_id.parent_id.id)
+                else:
+                    partner_id_list.append(picking.partner_id.parent_id.parent_id.id)
         if len(set(partner_id_list)) == 1:
             self.partner_id = list(set(partner_id_list))[0]
         else:
@@ -136,5 +134,4 @@ class GenerateMultipleInvoice(models.TransientModel):
                 'compressed_invoice': compressed,
                 'invoice_line_ids': invoice_lines
             })
-
             recs.invoiced_id = account_move.id

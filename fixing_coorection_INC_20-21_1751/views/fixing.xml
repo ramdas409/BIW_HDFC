@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="action_map_fixing_delievry_orders_for_awb" model="ir.actions.server">
+        <field name="name">Migrate Delivery order to other column</field>
+        <field name="type">ir.actions.server</field>
+        <field name="model_id" ref="model_air_way_bill"/>
+        <field name="binding_model_id" ref="model_air_way_bill"/>
+        <field name="state">code</field>
+        <field name="code">
+            records.map_fixing_delievry_orders_for_awb()
+        </field>
+    </record>
+</odoo>

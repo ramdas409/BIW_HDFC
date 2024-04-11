@@ -17,7 +17,7 @@ class sale_order_line(models.Model):
     def _prepare_procurement_values(self, group_id=False):
         res = super(sale_order_line, self)._prepare_procurement_values(group_id)
         if self.contact_name:
-            a = res.update({'partner_id': self.contact_name.id or self.order_id.partner_shipping_id.id or False})
+            res.update({'partner_id': self.contact_name.id or self.order_id.partner_shipping_id.id or False})
         return res
 
 

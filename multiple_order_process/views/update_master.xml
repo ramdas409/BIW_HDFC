@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <tree>
                 <field name="awb_nos"/>
+                <field name="unique_ref"/>
                 <field name="pod_date"/>
                 <field name="person_delv"/>
                 <field name="return_date"/>

@@ -79,7 +79,7 @@ class TemporaryRecords(models.Model):
         # converting selected ids to record tuple
         selected_records = self.browse(selected_ids)
 
-        res_partners = self.env['res.partner'].search([])
+        res_partners = self.env['res.partner']
         product_template = self.env['product.template'].search([])
 
         vals = []
@@ -103,6 +103,7 @@ class TemporaryRecords(models.Model):
                     'global_item_code': ids.global_item_code.id,
                     'item_desc': ids.item_desc,
                     'qty': ids.qty,
+                    'latest': True
                 })
 
                 contact = res_partners.create({
@@ -245,6 +246,7 @@ class TemporaryRecords(models.Model):
                                     'item_desc': line[12].strip(),
                                     'qty': line[13].strip(),
                                     'global_item_code': prods.global_code.id,
+                                    'latest': True
                                 })
 
                                 master_sheet_new.append(master_id)
