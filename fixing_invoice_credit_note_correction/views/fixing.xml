@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="action_fixing_invoice_credit_note" model="ir.actions.server">
+        <field name="name">Map invoice number</field>
+        <field name="type">ir.actions.server</field>
+        <field name="model_id" ref="model_stock_picking"/>
+        <field name="binding_model_id" ref="model_stock_picking"/>
+        <field name="state">code</field>
+        <field name="code">
+            records.map_fixing_invoice_credit_note()
+        </field>
+    </record>
+
+
+
+    <record id="action_fixing_invoice_credit_note_in_return_dahboard" model="ir.actions.server">
+        <field name="name">Map invoice number in return dashboard</field>
+        <field name="type">ir.actions.server</field>
+        <field name="model_id" ref="model_stock_picking"/>
+        <field name="binding_model_id" ref="model_stock_picking"/>
+        <field name="state">code</field>
+        <field name="code">
+            records.map_fixing_invoice_from_return_dashboard()
+        </field>
+    </record>
+</odoo>

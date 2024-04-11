@@ -7,9 +7,8 @@ class AirwayBillInherit(models.Model):
 
     def map_fixing_delievry_orders_for_awb(self):
 
-        selected_ids = self.env.context.get('active_ids', [])
-        data = self.env['air.way.bill'].browse(selected_ids)
-        for rec in data:
+
+        for rec in self:
             if rec.delivery_order_number:
                 rec.delivery_order_number_many=[(4, rec.delivery_order_number.id)]
 

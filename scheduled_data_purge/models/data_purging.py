@@ -112,6 +112,23 @@ class ConfigDataPurging(models.Model):
                     recs.customer_name.update(table_fields[to_purge])
                     recs.customer_name.name = recs.unique_ref
                     recs.purged = True  # Tata New
+        mail_send = self.env['report.mail.config'].search([('report_type', '=', "data_purge")])
+        mail = self.env['mail.mail'].create({
+                'subject': mail_send.subject,
+                'email_to': mail_send.users_rec,
+                'author_id': mail_send.write_uid.partner_id.id,
+                'email_from': mail_send.user_send,
+                # 'attachment_ids': self.env['ir.attachment'].search([('id', '=', attachment.id)]).ids,
+                'email_cc': mail_send.cc,
+                'body_html': ''' 
+                                <p>Hi Team,</p>
+                                <p>
+                                This is to inform that we have Purged all customer related information from our data base till “{date}” for HDFC Rewards redemption program.</p>
+                                <p>Thank You!</p>
+                                <p>BI Worldwide Helpdesk</p>
+                                '''.format(date=that_date.strftime("%d %B %Y"))
+            })
+        mail.send()
 
     # def table_data_purge(self):
 

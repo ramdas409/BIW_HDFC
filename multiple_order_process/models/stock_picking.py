@@ -37,6 +37,7 @@ class StockPickingEnhanced(models.Model):
     # Altered
     hub = fields.Char(string='HUB', readonly=1, store=True, tracking=True)
     airport = fields.Char(string='Airport', readonly=1, store=True, tracking=True)
+    product_code=fields.Char(string='unique_ref.global_item_code')
     # Altered
 
     invoice_date = fields.Date(string='Invoice Date', related='invoiced_id.invoice_date', readonly=1, store=True)
@@ -109,75 +110,95 @@ class StockPickingEnhanced(models.Model):
                     rec.order_status = 'cancelled'
 
     def confirm_hand_off(self):
-        courier_priority = self.env['courier.priority'].search([])
+        courier_priority = self.env['courier.priority'].search([], order='priority_no asc')
         tot_couriers = {}
         for couriers in courier_priority:
             tot_couriers[couriers.priority_no] = couriers.courier_company
         sorted = list(set(tot_couriers))
         if len(list(tot_couriers)) == 0:
             raise UserError('There are no courier companies available')
-        selected_ids = self.env.context.get('active_ids', [])
-        data = self.env['stock.picking'].search([('id','in',selected_ids)],order='client_order')
-        order_no=None
-        awb=None
-        intial=False
-        for rec in data:
+
+        # order_no=None
+        awb = None
+        client = None
+        client_orders = []
+        parent_pincode_ids = None
+        pincode_id = None
+        for rec in self.sorted(lambda x: x.client_order):
             if rec.picking_type_code == 'outgoing':
                 if rec.state == 'assigned' and rec.order_status == 'ready':
                     if rec.zip != '':
-                        for courier in range(len(sorted)):
-                            if rec.courier_company_id.id == False and rec.awb_number.id == False:
-                                parent_pincode_ids = tot_couriers[sorted[courier]].courier_pincode_ids.search([('pin_code', '=', rec.zip)])
-                                pincode_id = tot_couriers[sorted[courier]].courier_pincode_ids.search([('courier_company', '=', tot_couriers[sorted[courier]].id), ('pin_code', '=', rec.zip)])
-                                if(intial==False):
-                                    awb = pincode_id.courier_company.serviced_awb.search([('delivery_order_number_many', '=', False), ('serviced_awb_link', '=', pincode_id.courier_company.id)])
-                                    intial = True
-                                    order_no = rec.unique_ref.ref_no
-                                elif(order_no != rec.unique_ref.ref_no and intial == True):
-                                    awb = pincode_id.courier_company.serviced_awb.search([('delivery_order_number_many', '=', False), ('serviced_awb_link', '=', pincode_id.courier_company.id)])
-                                    order_no = rec.unique_ref.ref_no
-                                if parent_pincode_ids:
-                                    if pincode_id:
-                                        if len(awb) != 0:
-                                            rec.courier_company_id = pincode_id.courier_company.id
-                                            rec.awb_number = awb[0].id
-                                            rec.hub = pincode_id.hub
-                                            rec.airport = pincode_id.airport
-                                            awb[0].delivery_order_number_many = [(4,rec.id)]
-                                            rec.order_status = 'hand_off'
-                                        else:
-                                            raise UserError("Shortage of AWB No(s) to assign")
+                        if rec.client_order != client and rec.client_order not in client_orders:
+                            for courier in range(len(sorted)):
+                                if rec.courier_company_id.id == False and rec.awb_number.id == False:
+                                    parent_pincode_ids = tot_couriers[sorted[courier]].courier_pincode_ids.search(
+                                        [('pin_code', '=', rec.zip)])
+                                    response = tot_couriers[sorted[courier]].courier_pincode_ids.search(
+                                        [('courier_company', '=', tot_couriers[sorted[courier]].id),
+                                         ('pin_code', '=', rec.zip)])
+                                    pincode_id = response
+                                    awb = pincode_id.courier_company.serviced_awb.search(
+                                        [('delivery_order_number_many', '=', False),
+                                         ('serviced_awb_link', '=', pincode_id.courier_company.id)],
+                                        order='awb_number asc')
+                                    client_orders.append(rec.client_order)
+                                    client = rec.client_order
+                                    if (response):
+                                        break
+                        if parent_pincode_ids:
+                            if pincode_id:
+                                if len(awb) != 0:
+                                    rec.courier_company_id = pincode_id.courier_company.id
+                                    rec.awb_number = awb[0].id
+                                    rec.hub = pincode_id.hub
+                                    rec.airport = pincode_id.airport
+                                    awb[0].delivery_order_number_many = [(4, rec.id)]
+                                    rec.order_status = 'hand_off'
                                 else:
-                                    rec.order_status = 'not_serviceable'
+                                    raise UserError("Shortage of AWB No(s) to assign")
+                        else:
+                            rec.order_status = 'not_serviceable'
                     else:
                         rec.order_status = 'not_serviceable'
                 else:
                     raise UserError('Order(s) is/are not in Ready state to Hand-off')
             else:
                 raise UserError('Please Select Delivery Orders Only')
+        single_awb_list=[]
+        multiple_awb_list=[]
+        for rec in self:
+            if self.search_count([('awb_number','=',rec.awb_number.id)])>1:
+                multiple_awb_list.append(rec)
+            else:
+                single_awb_list.append(rec)
 
-        # not_awb_list = []
-        # for not_awb in self:
-        #     if not_awb.order_status == 'ready':
-        #         not_awb_list.append(not_awb)
-        # if len(not_awb_list) > 0:
-        #     raise UserError("Shortage of " + str(len(not_awb_list)) + " AWB No(s) to assign")
-
-        cour_company_list = []
-        for recs in self:
+        single_cour_company_list = []
+        multiple_cour_company_list = []
+        for recs in single_awb_list:
             if recs.courier_company_id:
-                cour_company_list.append(recs.courier_company_id)
-        print(cour_company_list)
+                single_cour_company_list.append(recs.courier_company_id)
+        for recs in multiple_awb_list:
+            if recs.courier_company_id:
+                multiple_cour_company_list.append(recs.courier_company_id)
 
-        map_hand_off_id = {}
-        for cour in set(cour_company_list):
-            map_hand_off_id[cour] = self.env['ir.sequence'].next_by_code('hand_off_ids')
-        print(map_hand_off_id)
+        map_hand_off_id_multi = {}
+        for cour in set(multiple_cour_company_list):
+            map_hand_off_id_multi[cour] = self.env['ir.sequence'].next_by_code('hand_off_ids')
 
-        for lines in self:
-            for ids in map_hand_off_id:
+        for lines in multiple_awb_list:
+            for ids in map_hand_off_id_multi:
                 if lines.courier_company_id == ids:
-                    lines.hand_off_id = map_hand_off_id[ids]
+                    lines.hand_off_id = map_hand_off_id_multi[ids]
+                    lines.hand_off_date_time = datetime.datetime.now()
+
+        map_hand_off_id_single = {}
+        for cour in set(single_cour_company_list):
+            map_hand_off_id_single[cour] = self.env['ir.sequence'].next_by_code('hand_off_ids')
+
+        for lines in single_awb_list:
+            for ids in map_hand_off_id_single:
+                if lines.courier_company_id == ids:
+                    lines.hand_off_id = map_hand_off_id_single[ids]
                     lines.hand_off_date_time = datetime.datetime.now()
 
     def button_validate(self):
