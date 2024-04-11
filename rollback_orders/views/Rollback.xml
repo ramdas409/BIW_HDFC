@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <record id="action_handoff_roll_back_handoff" model="ir.actions.server">
+        <field name="name">Rollback Handoff</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="groups_id" eval="[(4, ref('multiple_order_process.invoice_product_no_create_finance'))]"/>
+
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+            records.rollback_handoff()
+        </field>
+    </record>
+
+    <record id="action_handoff_roll_entire_process" model="ir.actions.server">
+        <field name="name">Rollback Entire sale order</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('multiple_order_process.invoice_product_no_create_finance'))]"/>
+
+        <field name="state">code</field>
+        <field name="code">
+            records.rollback_entire_process()
+        </field>
+    </record>
+
+
+    <record id="action_github_commit_tree" model="ir.ui.view">
+        <field name="name">github.commit.tree</field>
+        <field name="model">github.commit</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="path"/>
+                <field name="commit_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_github_commit_form" model="ir.ui.view">
+        <field name="name">github.commit.form</field>
+        <field name="model">github.commit</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="get_commit_from_github_path" type="object" string="Get Commit" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="path"/>
+                    </group>
+                    <group>
+                        <field name="commit_id"/>
+                        <field name="get_commit_id"/>
+                        <field name="pull_commit_id"/>
+                    </group>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <record id="window_action_github_commit" model="ir.actions.act_window">
+        <field name="name">Github Commit</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">github.commit</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_no_content_smiling_face">Get Github Commit from Server</p>
+        </field>
+    </record>
+
+    <menuitem id="github_commit_menu"
+              name="Github"
+              parent="sale.sale_menu_root"
+              action="window_action_github_commit"
+              sequence="135"/>
+</odoo>
