@@ -82,6 +82,8 @@ class GetGitCommit(models.Model):
             os.chdir(self.path)
             print(os.getcwd())
             result = subprocess.run('git checkout {commit}'.format(commit=self.commit_id), shell=True, capture_output=True, text=True)
+            result = subprocess.run('git rev-parse HEAD ', shell=True, capture_output=True, text=True)
+
             print(result.stdout)
             self.commit_id = result.stdout
 
