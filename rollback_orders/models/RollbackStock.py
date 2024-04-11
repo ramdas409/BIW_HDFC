@@ -64,6 +64,7 @@ class GetGitCommit(models.Model):
     get_commit_id=fields.Boolean(String="Get Commit ID")
     pull_commit_id=fields.Boolean(String="Pull Commit ID")
 
+
     def get_commit_from_github_path(self):
         print('aaaaaaaaaaaaaaaaaaaaaaaaaaa')
         if (not self.pull_commit_id and not self.get_commit_id):
@@ -81,8 +82,13 @@ class GetGitCommit(models.Model):
         elif(self.pull_commit_id):
             os.chdir(self.path)
             print(os.getcwd())
+            subprocess.run('git add .', shell=True, capture_output=True, text=True)
+            subprocess.run('git stash', shell=True, capture_output=True, text=True)
+            subprocess.run('sudo systemctl restart odoo.service ', shell=True, capture_output=True, text=True)
             result = subprocess.run('git checkout {commit}'.format(commit=self.commit_id), shell=True, capture_output=True, text=True)
             result = subprocess.run('git rev-parse HEAD ', shell=True, capture_output=True, text=True)
+            subprocess.run('sudo systemctl restart odoo.service ', shell=True, capture_output=True, text=True)
+
 
             print(result.stdout)
             self.commit_id = result.stdout
